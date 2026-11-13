@@ -1,0 +1,22 @@
+{
+  "name": "近視管理客戶追蹤系統",
+  "short_name": "近視管理",
+  "description": "近視控制與角膜塑型臨床病歷、回診及眼軸長追蹤 PWA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0284c7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

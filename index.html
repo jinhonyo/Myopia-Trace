@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>近視管理客戶追蹤系統</title>
+  
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-left">
+      <h1>近視管理客戶資料</h1>
+      <span id="sync-status" class="sync-badge">離線快取中</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-sync" class="btn-icon" title="同步雲端試算表">🔄</button>
+      <button id="btn-settings" class="btn-icon" title="系統設定">⚙️</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    
+    <section class="search-filter-section">
+      <div class="search-box">
+        <input type="text" id="input-search" placeholder="搜尋姓名、識別碼或醫師...">
+        <button id="btn-clear-search" class="btn-clear">✕</button>
+      </div>
+      <div class="filter-chips">
+        <button class="chip active" data-filter="all">全部</button>
+        <button class="chip" data-filter="DF1">DF1</button>
+        <button class="chip" data-filter="DF1散光">DF1散光</button>
+        <button class="chip" data-filter="新樂學">新樂學</button>
+        <button class="chip" data-filter="星趣控">星趣控</button>
+        <button class="chip" data-filter="MiSight">MiSight</button>
+      </div>
+    </section>
+
+    <section id="view-customer-list" class="view-panel active">
+      <div id="customer-cards-container" class="cards-list"></div>
+    </section>
+
+    <section id="view-customer-detail" class="view-panel">
+      <div class="detail-header">
+        <button id="btn-back-to-list" class="btn-text">← 返回列表</button>
+        <h2 id="detail-customer-name">--</h2>
+        <span id="detail-customer-id" class="id-tag">--</span>
+      </div>
+
+      <div class="info-card">
+        <div class="info-grid">
+          <div><label>片種：</label><span id="detail-lens">--</span></div>
+          <div><label>醫師：</label><span id="detail-doctor">--</span></div>
+          <div><label>生日：</label><span id="detail-birthday">--</span></div>
+          <div><label>取件日：</label><span id="detail-pickup">--</span></div>
+        </div>
+        <div class="info-notes"><label>備註：</label><p id="detail-notes">無備註</p></div>
+      </div>
+
+      <div class="chart-card">
+        <h3>雙眼眼軸長 (AL) 追蹤曲線</h3>
+        <div class="chart-wrapper">
+          <canvas id="alTrendChart"></canvas>
+        </div>
+      </div>
+
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="tab-visits">回診紀錄 (<span id="count-visits">0</span>)</button>
+        <button class="tab-btn" data-tab="tab-refractions">驗光歷史 (<span id="count-refractions">0</span>)</button>
+        <button class="tab-btn" data-tab="tab-images">臨床影像</button>
+      </div>
+
+      <div id="tab-visits" class="tab-content active">
+        <div id="visits-container" class="timeline-list"></div>
+      </div>
+
+      <div id="tab-refractions" class="tab-content">
+        <div id="refractions-container" class="timeline-list"></div>
+      </div>
+
+      <div id="tab-images" class="tab-content">
+        <div id="images-container" class="images-gallery"></div>
+      </div>
+    </section>
+  </main>
+
+  <button id="btn-fab-add" class="fab-btn" title="快速新增回診">+</button>
+
+  <div id="modal-add-visit" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3>新增回診紀錄</h3>
+        <button id="btn-close-modal" class="btn-icon">✕</button>
+      </div>
+      <form id="form-add-visit">
+        <div class="form-group">
+          <label>顧客姓名</label>
+          <input type="text" id="visit-input-name" readonly>
+        </div>
+        <div class="form-group">
+          <label>回診日期</label>
+          <input type="date" id="visit-input-date" required>
+        </div>
+        
+        <div class="form-group">
+          <label>常用備註標籤</label>
+          <div class="quick-tags">
+            <span class="tag-chip" data-tag="取件">取件</span>
+            <span class="tag-chip" data-tag="第一次回診">第一次回診</span>
+            <span class="tag-chip" data-tag="換片">換片</span>
+            <span class="tag-chip" data-tag="昨天沒戴">昨天沒戴</span>
+            <span class="tag-chip" data-tag="鏡片送洗">鏡片送洗</span>
+          </div>
+          <input type="text" id="visit-input-notes" placeholder="或手動輸入備註內容...">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>右眼視力 (OD)</label>
+            <input type="number" step="0.1" id="visit-input-od-va" placeholder="例如: 1.0">
+          </div>
+          <div class="form-group">
+            <label>左眼視力 (OS)</label>
+            <input type="number" step="0.1" id="visit-input-os-va" placeholder="例如: 0.9">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>右眼軸長 (OD AL mm)</label>
+            <input type="number" step="0.01" id="visit-input-od-al" placeholder="例如: 24.50">
+          </div>
+          <div class="form-group">
+            <label>左眼軸長 (OS AL mm)</label>
+            <input type="number" step="0.01" id="visit-input-os-al" placeholder="例如: 24.52">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit-visit" class="btn-primary">儲存回診紀錄</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-settings" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3>系統設定與同步</h3>
+        <button id="btn-close-settings" class="btn-icon">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="form-group">
+          <label>GAS Web App 部署網址</label>
+          <input type="url" id="setting-gas-url" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <div class="form-group">
+          <label>存取金鑰 (Token)</label>
+          <input type="password" id="setting-gas-token" value="MyopiaCareSecureKey2026">
+        </div>
+        <button id="btn-save-settings" class="btn-primary">儲存設定</button>
+
+        <hr style="margin: 16px 0; border: none; border-top: 1px solid #e2e8f0;">
+        <h4 style="margin-bottom: 8px;">離線資料庫管理</h4>
+        <button id="btn-export-csv" class="btn-secondary">匯出回診紀錄 (CSV 備份)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/db.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/chartModule.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
